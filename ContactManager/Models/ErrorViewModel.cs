@@ -1,5 +1,3 @@
-using System;
-
 namespace ContactManager.Models
 {
     public class ErrorViewModel
