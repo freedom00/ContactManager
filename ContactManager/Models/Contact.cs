@@ -1,17 +1,27 @@
-﻿using System;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace ContactManager.Models
 {
+    public enum ContactStatus
+    {
+        Submitted,
+        Approved,
+        Rejected
+    }
+
     public class Contact
     {
-        public int Contactid { get; set; }
+        public int ContactId { get; set; }
+        public string OwnerId { get; set; }
 
         [Required, MinLength(2), MaxLength(100)]
         public string FirstName { get; set; }
 
         [Required, MinLength(2), MaxLength(100)]
         public string LastName { get; set; }
+
+        [Required, MinLength(2), MaxLength(100)]
+        public string Address { get; set; }
 
         [MinLength(2), MaxLength(100)]
         public string City { get; set; }
@@ -24,5 +34,7 @@ namespace ContactManager.Models
 
         [Required, DataType(DataType.EmailAddress)]
         public string Email { get; set; }
+
+        public ContactStatus Status { get; set; }
     }
 }

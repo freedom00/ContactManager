@@ -1,4 +1,6 @@
+using ContactManager.Authorization;
 using ContactManager.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
@@ -25,9 +27,27 @@ namespace ContactManager
                 options.UseSqlServer(
                     Configuration.GetConnectionString("DefaultConnection")));
             services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
+                .AddRoles<IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>();
             services.AddControllersWithViews();
             services.AddRazorPages();
+
+            //method one
+            services.AddAuthorization(options =>
+            {
+                options.FallbackPolicy = new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build();
+            });
+
+            //method two
+            //services.AddControllers(config =>
+            //{
+            //    var policy = new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build();
+            //    config.Filters.Add(new AuthorizeFilter(policy));
+            //});
+
+            services.AddScoped<IAuthorizationHandler, ContactIsOwnerAuthorizationHandler>();
+            services.AddSingleton<IAuthorizationHandler, ContactAdministratorsAuthorizationHandler>();
+            services.AddSingleton<IAuthorizationHandler, ContactManagerAuthorizationHandler>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

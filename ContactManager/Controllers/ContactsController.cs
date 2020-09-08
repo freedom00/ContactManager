@@ -1,5 +1,8 @@
-﻿using ContactManager.Data;
+﻿using ContactManager.Authorization;
+using ContactManager.Data;
 using ContactManager.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
@@ -9,17 +12,28 @@ namespace ContactManager.Controllers
 {
     public class ContactsController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly ApplicationDbContext context;
+        private readonly UserManager<IdentityUser> userManager;
+        private readonly IAuthorizationService authorizationService;
 
-        public ContactsController(ApplicationDbContext context)
+        public ContactsController(ApplicationDbContext context, UserManager<IdentityUser> userManager, IAuthorizationService authorizationService)
         {
-            _context = context;
+            this.context = context;
+            this.userManager = userManager;
+            this.authorizationService = authorizationService;
         }
 
         // GET: Contacts
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Contact.ToListAsync());
+            var isAuthorized = User.IsInRole(Constants.ContactAdministratorsRole) || User.IsInRole(Constants.ContactManagersRole);
+            var currentUserId = userManager.GetUserId(User);
+            if (!isAuthorized)
+            {
+                return View(await context.Contact.Where(c => c.Status == ContactStatus.Approved || c.OwnerId == currentUserId).ToListAsync());
+            }
+
+            return View(await context.Contact.ToListAsync());
         }
 
         // GET: Contacts/Details/5
@@ -30,14 +44,49 @@ namespace ContactManager.Controllers
                 return NotFound();
             }
 
-            var contact = await _context.Contact
-                .FirstOrDefaultAsync(m => m.Contactid == id);
+            var contact = await context.Contact.FirstOrDefaultAsync(m => m.ContactId == id);
             if (contact == null)
             {
                 return NotFound();
             }
 
+            var isAuthorized = User.IsInRole(Constants.ContactAdministratorsRole) || User.IsInRole(Constants.ContactManagersRole);
+            var currentUserId = userManager.GetUserId(User);
+            if (!isAuthorized && currentUserId != contact.OwnerId && contact.Status != ContactStatus.Approved)
+            {
+                return Forbid();
+            }
+
             return View(contact);
+        }
+
+        //GET: Contacts/ChangeStatus/5?status=Approve
+        public async Task<IActionResult> ChangeStatus(int? id, ContactStatus status)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
+
+            var contact = await context.Contact.FirstOrDefaultAsync(m => m.ContactId == id);
+            if (contact == null)
+            {
+                return NotFound();
+            }
+
+            var contactOperation = status == ContactStatus.Approved ? ContactOperations.Approve : ContactOperations.Reject;
+
+            var isAuthorized = await authorizationService.AuthorizeAsync(User, contact, contactOperation);
+            if (!isAuthorized.Succeeded)
+            {
+                return Forbid();
+            }
+
+            contact.Status = status;
+            context.Contact.Update(contact);
+            await context.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Index));
         }
 
         // GET: Contacts/Create
@@ -49,14 +98,23 @@ namespace ContactManager.Controllers
         // POST: Contacts/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Contactid,FirstName,LastName,City,State,Zip,Email")] Contact contact)
+        public async Task<IActionResult> Create([Bind("ContactId,OwnerId,FirstName,LastName,Address,City,State,Zip,Email,Status")] Contact contact)
         {
             if (ModelState.IsValid)
             {
-                _context.Add(contact);
-                await _context.SaveChangesAsync();
+                contact.OwnerId = userManager.GetUserId(User);
+
+                var isAuthorized = await authorizationService.AuthorizeAsync(User, contact, ContactOperations.Create);
+                if (!isAuthorized.Succeeded)
+                {
+                    return Forbid();
+                }
+
+                context.Add(contact);
+                await context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
+
             return View(contact);
         }
 
@@ -68,34 +126,47 @@ namespace ContactManager.Controllers
                 return NotFound();
             }
 
-            var contact = await _context.Contact.FindAsync(id);
+            var contact = await context.Contact.FindAsync(id);
             if (contact == null)
             {
                 return NotFound();
             }
+
+            var isAuthorized = await authorizationService.AuthorizeAsync(User, contact, ContactOperations.Update);
+            if (!isAuthorized.Succeeded)
+            {
+                return Forbid();
+            }
+
             return View(contact);
         }
 
         // POST: Contacts/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Contactid,FirstName,LastName,City,State,Zip,Email")] Contact contact)
+        public async Task<IActionResult> Edit(int id, [Bind("ContactId,OwnerId,FirstName,LastName,Address,City,State,Zip,Email,Status")] Contact contact)
         {
-            if (id != contact.Contactid)
+            if (id != contact.ContactId)
             {
                 return NotFound();
             }
 
             if (ModelState.IsValid)
             {
+                var isAuthorized = await authorizationService.AuthorizeAsync(User, contact, ContactOperations.Update);
+                if (!isAuthorized.Succeeded)
+                {
+                    return Forbid();
+                }
+
                 try
                 {
-                    _context.Update(contact);
-                    await _context.SaveChangesAsync();
+                    context.Update(contact);
+                    await context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!ContactExists(contact.Contactid))
+                    if (!ContactExists(contact.ContactId))
                     {
                         return NotFound();
                     }
@@ -106,6 +177,7 @@ namespace ContactManager.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
+
             return View(contact);
         }
 
@@ -117,11 +189,17 @@ namespace ContactManager.Controllers
                 return NotFound();
             }
 
-            var contact = await _context.Contact
-                .FirstOrDefaultAsync(m => m.Contactid == id);
+            var contact = await context.Contact
+                .FirstOrDefaultAsync(m => m.ContactId == id);
             if (contact == null)
             {
                 return NotFound();
+            }
+
+            var isAuthorized = await authorizationService.AuthorizeAsync(User, contact, ContactOperations.Delete);
+            if (!isAuthorized.Succeeded)
+            {
+                return Forbid();
             }
 
             return View(contact);
@@ -132,15 +210,23 @@ namespace ContactManager.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var contact = await _context.Contact.FindAsync(id);
-            _context.Contact.Remove(contact);
-            await _context.SaveChangesAsync();
+            var contact = await context.Contact.FindAsync(id);
+
+            var isAuthorized = await authorizationService.AuthorizeAsync(User, contact, ContactOperations.Delete);
+            if (!isAuthorized.Succeeded)
+            {
+                return Forbid();
+            }
+
+            context.Contact.Remove(contact);
+            await context.SaveChangesAsync();
+
             return RedirectToAction(nameof(Index));
         }
 
         private bool ContactExists(int id)
         {
-            return _context.Contact.Any(e => e.Contactid == id);
+            return context.Contact.Any(e => e.ContactId == id);
         }
     }
 }

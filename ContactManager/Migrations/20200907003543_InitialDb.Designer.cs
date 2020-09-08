@@ -10,8 +10,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ContactManager.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20200906160152_CreateContactSchema")]
-    partial class CreateContactSchema
+    [Migration("20200907003543_InitialDb")]
+    partial class InitialDb
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -23,10 +23,15 @@ namespace ContactManager.Migrations
 
             modelBuilder.Entity("ContactManager.Models.Contact", b =>
                 {
-                    b.Property<int>("Contactid")
+                    b.Property<int>("ContactId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
                         .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(100)")
+                        .HasMaxLength(100);
 
                     b.Property<string>("City")
                         .HasColumnType("nvarchar(100)")
@@ -46,16 +51,22 @@ namespace ContactManager.Migrations
                         .HasColumnType("nvarchar(100)")
                         .HasMaxLength(100);
 
+                    b.Property<string>("OwnerId")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("State")
                         .HasColumnType("nvarchar(100)")
                         .HasMaxLength(100);
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
 
                     b.Property<string>("Zip")
                         .IsRequired()
                         .HasColumnType("nvarchar(7)")
                         .HasMaxLength(7);
 
-                    b.HasKey("Contactid");
+                    b.HasKey("ContactId");
 
                     b.ToTable("Contact");
                 });

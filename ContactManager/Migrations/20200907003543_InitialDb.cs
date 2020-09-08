@@ -3,7 +3,7 @@ using System;
 
 namespace ContactManager.Migrations
 {
-    public partial class CreateContactSchema : Migration
+    public partial class InitialDb : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -50,18 +50,21 @@ namespace ContactManager.Migrations
                 name: "Contact",
                 columns: table => new
                 {
-                    Contactid = table.Column<int>(nullable: false)
+                    ContactId = table.Column<int>(nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
+                    OwnerId = table.Column<string>(nullable: true),
                     FirstName = table.Column<string>(maxLength: 100, nullable: false),
                     LastName = table.Column<string>(maxLength: 100, nullable: false),
+                    Address = table.Column<string>(maxLength: 100, nullable: false),
                     City = table.Column<string>(maxLength: 100, nullable: true),
                     State = table.Column<string>(maxLength: 100, nullable: true),
                     Zip = table.Column<string>(maxLength: 7, nullable: false),
-                    Email = table.Column<string>(nullable: false)
+                    Email = table.Column<string>(nullable: false),
+                    Status = table.Column<int>(nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Contact", x => x.Contactid);
+                    table.PrimaryKey("PK_Contact", x => x.ContactId);
                 });
 
             migrationBuilder.CreateTable(

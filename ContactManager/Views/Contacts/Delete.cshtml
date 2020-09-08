@@ -12,6 +12,12 @@
     <h4>Contact</h4>
     <hr />
     <dl class="row">
+        @*<dt class="col-sm-2">
+                @Html.DisplayNameFor(model => model.OwnerId)
+            </dt>
+            <dd class="col-sm-10">
+                @Html.DisplayFor(model => model.OwnerId)
+            </dd>*@
         <dt class="col-sm-2">
             @Html.DisplayNameFor(model => model.FirstName)
         </dt>
@@ -23,6 +29,12 @@
         </dt>
         <dd class="col-sm-10">
             @Html.DisplayFor(model => model.LastName)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Address)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Address)
         </dd>
         <dt class="col-sm-2">
             @Html.DisplayNameFor(model => model.City)
@@ -48,10 +60,16 @@
         <dd class="col-sm-10">
             @Html.DisplayFor(model => model.Email)
         </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Status)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Status)
+        </dd>
     </dl>
 
     <form asp-action="Delete">
-        <input type="hidden" asp-for="Contactid" />
+        <input type="hidden" asp-for="ContactId" />
         <input type="submit" value="Delete" class="btn btn-danger" /> |
         <a asp-action="Index">Back to List</a>
     </form>

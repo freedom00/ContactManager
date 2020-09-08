@@ -1,4 +1,8 @@
-﻿@model ContactManager.Models.Contact
+﻿@using ContactManager.Authorization;
+@using Microsoft.AspNetCore.Authorization
+@inject IAuthorizationService AuthorizationService
+
+@model ContactManager.Models.Contact
 
 @{
     ViewData["Title"] = "Details";
@@ -11,6 +15,12 @@
     <h4>Contact</h4>
     <hr />
     <dl class="row">
+        @*<dt class="col-sm-2">
+                @Html.DisplayNameFor(model => model.OwnerId)
+            </dt>
+            <dd class="col-sm-10">
+                @Html.DisplayFor(model => model.OwnerId)
+            </dd>*@
         <dt class="col-sm-2">
             @Html.DisplayNameFor(model => model.FirstName)
         </dt>
@@ -22,6 +32,12 @@
         </dt>
         <dd class="col-sm-10">
             @Html.DisplayFor(model => model.LastName)
+        </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Address)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Address)
         </dd>
         <dt class="col-sm-2">
             @Html.DisplayNameFor(model => model.City)
@@ -47,9 +63,30 @@
         <dd class="col-sm-10">
             @Html.DisplayFor(model => model.Email)
         </dd>
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Status)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Status)
+        </dd>
     </dl>
 </div>
 <div>
-    <a asp-action="Edit" asp-route-id="@Model.Contactid">Edit</a> |
+    @if (Model.Status != ContactStatus.Approved && (await AuthorizationService.AuthorizeAsync(User, Model, ContactOperations.Approve)).Succeeded)
+    {
+        <a class="btn btn-success" asp-action="ChangeStatus" asp-route-id="@Model.ContactId" asp-route-status="@ContactStatus.Approved">Approve</a>
+    }
+
+    @if (Model.Status != ContactStatus.Rejected && (await AuthorizationService.AuthorizeAsync(User, Model, ContactOperations.Reject)).Succeeded)
+    {
+        <a class="btn btn-danger" asp-action="ChangeStatus" asp-route-id="@Model.ContactId" asp-route-status="@ContactStatus.Rejected">Reject</a>
+    }
+</div>
+<div>
+    @if ((await AuthorizationService.AuthorizeAsync(User, Model, ContactOperations.Update)).Succeeded)
+    {
+        <a asp-action="Edit" asp-route-id="@Model.ContactId">Edit</a>
+        <text>|</text>
+    }
     <a asp-action="Index">Back to List</a>
 </div>
