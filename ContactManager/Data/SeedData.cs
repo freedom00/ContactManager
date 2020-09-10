@@ -41,7 +41,7 @@ namespace ContactManager.Data
 
             if (null == user)
             {
-                throw new Exception("The passwored is probably not strong enought!");
+                throw new Exception("The password is probably not strong enough!");
             }
             return user.Id;
         }
