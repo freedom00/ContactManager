@@ -8,4 +8,5 @@ If you haven't already set a password for seeded user accounts, use the Secret M
 
       (b). Execute the following command from the project's folder, where <PW> is the password:
 
+           dotnet user-secrets init
            dotnet user-secrets set SeedUserPW <PW>
